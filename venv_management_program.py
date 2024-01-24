@@ -29,63 +29,68 @@ def list_virtual_environments(directory):
 
 
 def install_package(selected_environment):
+    package_name = input("Enter the name of the package to install: ")
+    venv_path = os.path.join(selected_environment, "bin", "python")
+
+    bash_check = [venv_path, "-m", "pip", "list"]
+    result = subprocess.run(bash_check, capture_output=True, text=True)
+
+    if package_name.lower() in result.stdout.lower():
+        print(f"Package '{package_name}' is already installed.")
+        return
+
     try:
-        package_name = input("Enter the name of the package to install: ")
-        venv_path = os.path.join(selected_environment, "bin", "python")
-
-        bash_check = [venv_path, "-m", "pip", "list"]
-        result = subprocess.run(bash_check, capture_output=True, text=True)
-
-        if package_name.lower() in result.stdout.lower():
-            print(f"Package '{package_name}' is already installed.")
-            return
-
-        # Activate the virtual environment and install the package
         activate_script = [venv_path, "-m", "pip", "install", package_name]
-        subprocess.run(activate_script)
+        subprocess.run(activate_script, check=True)
 
+    except subprocess.CalledProcessError as e:
+        print(f"Error installing package '{package_name}': {e}")
+        print(f"The specified package '{package_name}' does not exist or there was an issue during installation.")
+
+    else:
         print(f"Package '{package_name}' installed successfully.\n")
         list_packages(selected_environment)
-
-    except Exception as e:
-        print(f"Unexpected error installing package '{package_name}': {e}")
-
-
+        
+        
 def uninstall_package(selected_environment, package_name):
+    venv_path = os.path.join(selected_environment, "bin", "python")
+
+    bash_check = [venv_path, "-m", "pip", "list"]
+    result = subprocess.run(bash_check, capture_output=True, text=True)
+
+    if package_name.lower() not in result.stdout.lower():
+        print(f"Package '{package_name}' is not installed.")
+        return
+
     try:
-        venv_path = os.path.join(selected_environment, "bin", "python")
-
-        bash_check = [venv_path, "-m", "pip", "list"]
-        result = subprocess.run(bash_check, capture_output=True, text=True)
-
-        if package_name.lower() not in result.stdout.lower():
-            print(f"Package '{package_name}' is not installed.")
-            return
-
         command = [venv_path, "-m", "pip", "uninstall", package_name, "-y"]
         subprocess.run(command, check=True)
 
+    except subprocess.CalledProcessError as e:
+        print(f"Error uninstalling the package {package_name}: {e}")
+
+    else:
         print(f"Package '{package_name}' uninstalled successfully.")
 
-        list_packages(selected_environment)
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+    list_packages(selected_environment)
+
 
 
 def delete_virtual_environment(directory):
-    try:
-        confirm_delete = input(
-            "Do you want to delete this virtual environment? (yes/no): "
-        ).lower()
-        if confirm_delete == "yes":
-            shutil.rmtree(directory)
-            print(f"The virtual environment at '{directory}' has been deleted.")
-        else:
-            print(f"The virtual environment at '{directory}' was not deleted.")
-    except FileNotFoundError:
-        print(f"Directory not found: '{directory}'")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+    confirm_delete = input("Do you want to delete this virtual environment? (yes/no): ").lower()
+
+    if confirm_delete in ["yes", "y", "ye"]:
+     try:
+         shutil.rmtree(directory)
+         print(f"Virtual environment at '{directory}' has been successfully deleted.")
+     except Exception as e:
+        print(f"Error deleting virtual environment: {e}")
+
+    elif confirm_delete in ["no", "n"]:
+       print("Virtual environment will not be deleted.")
+
+    else:
+       print("Invalid input. Please enter 'yes' or 'no'.")
 
 
 def select_directory():
@@ -193,7 +198,7 @@ def main():
                     selected_index = int(selected_index) - 1
 
                     if selected_index == -1:
-                        continue  # Select another directory
+                     break # Select another directory
 
                     if 0 <= selected_index < len(virtual_environments):
                         selected_environment = virtual_environments[selected_index]
@@ -216,7 +221,7 @@ def main():
             another_directory = input(
                 "Do you want to select another directory? (yes/no): "
             ).lower()
-            if another_directory != "yes":
+            if another_directory != ["yes", "ye", "y"]:
                 print("Exiting program.")
                 break
 
